@@ -198,7 +198,7 @@ def __getRealDataInNubank():
     nu = Nubank()
     NB_LOGIN = os.getenv('NB_LOGIN')
     NB_PASSWORD = os.getenv('NB_PASSWORD')
-    nu.authenticate_with_cert(NB_LOGIN, NB_PASSWORD, '/Users/alexfrisoneyape/Development/EM/nubank/nubank/cert.p12')
+    nu.authenticate_with_cert(NB_LOGIN, NB_PASSWORD, '/Users/alexfrisoneyape/Development/EM-projects/nubank/nubank/cert.p12')
     card_data = nu.get_card_statements()
     with open('card_data.json', 'w') as file:
         json.dump(card_data, file, indent=4)

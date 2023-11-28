@@ -10,6 +10,8 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import functools
 import cache_yape
 import graphics
+import newsletter
+import subprocess
 
 @cache_yape.daily_cache_clear
 @functools.lru_cache(maxsize=None)
@@ -52,11 +54,11 @@ def getInfoBugs(month, year):
     grouped1 = bugs.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
     grouped1['Bugs Done'] = grouped1.sum(axis=1)
     grouped1 = grouped1[['Bugs Done']]
-    bugs.to_excel('/Users/alexfrisoneyape/Development/EM/metricas/bugs_done.xlsx')
+    # bugs.to_excel('/Users/alexfrisoneyape/Development/EM/metricas/bugs_done.xlsx')
     grouped2 = total_bugs.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
     grouped2['Bugs Total'] = grouped2.sum(axis=1)
     grouped2 = grouped2[['Bugs Total']]
-    total_bugs.to_excel('/Users/alexfrisoneyape/Development/EM/metricas/bugs_total.xlsx')
+    # total_bugs.to_excel('/Users/alexfrisoneyape/Development/EM/metricas/bugs_total.xlsx')
     group = pd.merge(grouped2, grouped1, left_index=True, right_index=True, how='outer')
     return periodo, group
 
@@ -174,7 +176,6 @@ def comparar_colunas(df1, df2, colunas, sufixo_unicode='_unicode', sufixo_difere
             lambda x: "⬆ -" if x['self'] > x['other'] else ("⬇ +" if x['self'] < x['other'] else "="), axis=1)
         df_diff[nome_coluna_diferenca] = df_diff[coluna].compare(df2[coluna]).apply(
             lambda x: abs(x['self'] - x['other']), axis=1)
-    print(df_diff)
     df_diff = df_diff[['owner', 'cycletime_raw_unicode',
        'cycletime_raw_diff', 'coding_raw_unicode', 'coding_raw_diff',
        'pickup_raw_unicode', 'pickup_raw_diff', 'review_raw_unicode',
@@ -200,8 +201,6 @@ def comparar_colunas(df1, df2, colunas, sufixo_unicode='_unicode', sufixo_difere
        'cycletime_diff', 'coding_diff',
        'pickup_diff', 'review_diff', 'deploy_diff', 
        'refactor_diff', 'rework_diff','bugs_total_diff','dt_total_diff']]
-    print("Data frame formatada")
-    print(df_diff)
     return df_diff
 
 def postReleasesInLinearB(days=3):
@@ -332,7 +331,15 @@ def checkMetricsByMonth():
                 ws_month_raw.cell(row=r_idx, column=c_idx, value=value)
 
     # Save to an Excel file
-    filename_monthly = "/Users/alexfrisoneyape/Development/EM/metricas/metricas.xlsx"
-    filename_monthly_analysis = "/Users/alexfrisoneyape/Development/EM/metricas/metricas_analysis.xlsx"
+    filename_monthly = "/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx"
+    filename_monthly_analysis = "/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas_analysis.xlsx"
     wb_new.save(filename_monthly)
     wb_new_raw.save(filename_monthly_analysis)
+    subprocess.run(['open', '-a', 'Microsoft Excel', '/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx' ])
+
+def generateNewsletter(template,news):
+    html = newsletter.preencher_template_informe_semanal(template,news)
+    with open('/Users/alexfrisoneyape/Development/EM-projects/metrics/informe_mensal.html', 'w') as file:
+        file.write(html)
+        
+    return html

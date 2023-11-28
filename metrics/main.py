@@ -14,10 +14,13 @@ def checkDeckMetrics():
     
 if __name__ == "__main__":
     metric_log.config_metric_log()
-    # services.getBugsGraph('01/08/2023','01/11/2023', 'owner_marketplace')
-    # Carregar variáveis de ambiente a partir do arquivo .env
-    load_dotenv('.env')
-
-    # Lendo as chaves de API e tokens do arquivo .env
-    api_key = os.getenv('DD_API_KEY')
-    print(api_key)
+    
+    arquivo_template = '/Users/alexfrisoneyape/Development/EM-projects/metrics/template_informe_mensal.html'
+    # Exemplo de uso da função
+    destaques_semana = [
+        'Conquista de um novo cliente importante.',
+        'Lançamento bem-sucedido do novo produto X.',
+        'Progresso significativo no projeto Y.',
+        # Adicione outros destaques conforme necessário
+    ]
+    services.generateNewsletter(arquivo_template,destaques_semana)
