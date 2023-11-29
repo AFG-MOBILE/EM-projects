@@ -65,7 +65,7 @@ def getInfoBugs(month, year):
 @cache_yape.daily_cache_clear
 @functools.lru_cache(maxsize=None)
 def getInfoDT(month, year):
-    periodo, count_dt_created, count_dt_done, dts, total_dts = nave.getCardsByLabel(month,year, ['debt', 'tarea técn'])
+    periodo, count_dt_created, count_dt_done, dts, total_dts = nave.getCardsByLabel(month,year, ['debt'])
     # Agrupando por owner e contando os deploys de cada stage
     grouped1 = dts.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
     grouped1['DT Done'] = grouped1.sum(axis=1)

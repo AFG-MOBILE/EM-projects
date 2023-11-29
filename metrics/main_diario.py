@@ -8,8 +8,8 @@ MONTH = 10
 YEAR = 2023
 
 def execucao_diaria():
-    # result = services.postReleasesInLinearB(4)
-    # print(result)
+    result = services.postReleasesInLinearB(4)
+    print(result)
 
     result = services.checkNewServicesWithoutOwners()
     print(result)
