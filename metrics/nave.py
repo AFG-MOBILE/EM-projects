@@ -210,6 +210,8 @@ def check_format(date_str):
     except:
         return False
 
+@cache_yape.daily_cache_clear
+@functools.lru_cache(maxsize=None)
 def getCardsByLabel(month, year, labels):
     if not commons_yape.isValidMonth(month, year):
         print('Mês informado é inválido')

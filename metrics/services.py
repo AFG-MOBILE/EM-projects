@@ -12,6 +12,7 @@ import cache_yape
 import graphics
 import newsletter
 import subprocess
+import powerpoint
 
 @cache_yape.daily_cache_clear
 @functools.lru_cache(maxsize=None)
@@ -49,23 +50,21 @@ def getInfoReleases(month, year):
 @cache_yape.daily_cache_clear
 @functools.lru_cache(maxsize=None)
 def getInfoBugs(month, year):
-    periodo, count_bugs_created, count_bugs_done, bugs, total_bugs = nave.getCardsByLabel(month,year, ['bug'])
+    periodo, count_bugs_created, count_bugs_done, bugs, total_bugs = nave.getCardsByLabel(month,year, tuple(['bug']))
     # Agrupando por owner e contando os deploys de cada stage
     grouped1 = bugs.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
     grouped1['Bugs Done'] = grouped1.sum(axis=1)
     grouped1 = grouped1[['Bugs Done']]
-    # bugs.to_excel('/Users/alexfrisoneyape/Development/EM/metricas/bugs_done.xlsx')
     grouped2 = total_bugs.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
     grouped2['Bugs Total'] = grouped2.sum(axis=1)
     grouped2 = grouped2[['Bugs Total']]
-    # total_bugs.to_excel('/Users/alexfrisoneyape/Development/EM/metricas/bugs_total.xlsx')
     group = pd.merge(grouped2, grouped1, left_index=True, right_index=True, how='outer')
     return periodo, group
 
 @cache_yape.daily_cache_clear
 @functools.lru_cache(maxsize=None)
 def getInfoDT(month, year):
-    periodo, count_dt_created, count_dt_done, dts, total_dts = nave.getCardsByLabel(month,year, ['debt'])
+    periodo, count_dt_created, count_dt_done, dts, total_dts = nave.getCardsByLabel(month,year, tuple(['debt', 'deuda']))
     # Agrupando por owner e contando os deploys de cada stage
     grouped1 = dts.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
     grouped1['DT Done'] = grouped1.sum(axis=1)
@@ -79,10 +78,14 @@ def getInfoDT(month, year):
     return periodo, group
 
 def getAllMetrics(month, year):
+    print("obtendo metricas de cycle time")
     linearbMetrics = getCycleTime(month,year)
+    print("obtendo metricas de releases")
     periodoR, releases = getInfoReleases(month,year)
     merged_grouped_diff = pd.merge(linearbMetrics, releases, left_index=True, right_index=True, how='outer') 
+    print("obtendo metricas de bugs")
     periodoB, bugs = getInfoBugs(month,year)
+    print("obtendo metricas de dts")
     periodoDT, deudas = getInfoDT(month,year)
     merged_grouped_diff = pd.merge(merged_grouped_diff, bugs, left_index=True, right_index=True, how='outer')
     merged_grouped_diff = pd.merge(merged_grouped_diff, deudas, left_index=True, right_index=True, how='outer')
@@ -106,7 +109,7 @@ def getAllMetrics(month, year):
     owner_para_filtrar = ["owner_checkout","owner_crm","owner_gas","owner_insurance","owner_krossboarder-remesas","owner_marketplace","owner_promos","owner_tap2phone","owner_tipodecambio", "retail"]
     df_filtrado = merged_grouped_diff[merged_grouped_diff['owner'].isin(owner_para_filtrar)]
     df_filtrado = df_filtrado.rename(columns={'index': 'owner'})
-
+    print("add dados por tribos")
     df_filtrado = appendTribe("retail", ["owner_gas","owner_marketplace","owner_promos"],df_filtrado)
     df_filtrado = appendTribe("financial", ["owner_tipodecambio","owner_krossboarder-remesas","owner_insurance"],df_filtrado)
     df_filtrado = appendTribe("negocios", ["owner_checkout","owner_tap2phone"],df_filtrado)
@@ -259,10 +262,10 @@ def getCycleTime(month, year):
         owner_metrics = linearb.get_measurements(tuple([serviceId]), owner, month, year)
         metrics.append(owner_metrics)
 
-    teams = linearb.get_teams()
-    for owner, teamId in teams.items():
-        owner_metrics = linearb.get_measurementsByTeam(tuple([teamId]), owner, month, year)
-        metrics.append(owner_metrics)
+    # teams = linearb.get_teams()
+    # for owner, teamId in teams.items():
+    #     owner_metrics = linearb.get_measurementsByTeam(tuple([teamId]), owner, month, year)
+    #     metrics.append(owner_metrics)
 
     df_metrics =  pd.DataFrame(metrics)
     df_metrics.fillna(0, inplace=True)
@@ -291,12 +294,12 @@ def getCycleTimeTribu(month, year):
         metrics.append(owner_metrics)
     return metrics
 
-def checkMetricsByMonth():
-    YEAR = 2023
+def checkMetricsByMonth(months, year):
+    YEAR = year
 
-    months = [10,11]
     monthsText = {1: 'Enero',2: 'Febrero',3: 'Marzo',4: 'Abril',5: 'Mayo',6: 'Junio',7: 'Julio',8: 'Agosto',9: 'Septiembre',10: 'Octubre',11: 'Noviembre',12: 'Diciembre'}
-    
+    last_index = len(months)-1
+    second_last_index = len(months)-2
     # Create a new Excel workbook
     wb_new = openpyxl.Workbook()
     del wb_new["Sheet"]  # remove default sheet
@@ -311,13 +314,13 @@ def checkMetricsByMonth():
         list_metrics[month] = metrics
     
     colunas_para_comparar = ['cycletime_raw', 'coding_raw', 'pickup_raw', 'review_raw', 'deploy_raw', 'refactor_raw', 'rework_raw', 'bugs_total_raw', 'dt_total_raw']
-    df = comparar_colunas(list_metrics_raw[10],list_metrics_raw[11], colunas_para_comparar)
-    merged_grouped_diff = pd.merge(list_metrics[11], df, left_index=True, right_index=True, how='outer')
+    df = comparar_colunas(list_metrics_raw[months[second_last_index]],list_metrics_raw[months[last_index]], colunas_para_comparar)
+    merged_grouped_diff = pd.merge(list_metrics[months[last_index]], df, left_index=True, right_index=True, how='outer')
     merged_grouped_diff = merged_grouped_diff.drop('owner_y', axis=1)
     merged_grouped_diff = merged_grouped_diff.rename(columns={'owner_x': 'owner'})
 
-    index = months[len(months)-1]
-    list_metrics[11] = merged_grouped_diff
+    
+    list_metrics[months[last_index]] = merged_grouped_diff
     for month in months:
         ws_month = wb_new.create_sheet(title=monthsText[month])
         
@@ -336,6 +339,7 @@ def checkMetricsByMonth():
     wb_new.save(filename_monthly)
     wb_new_raw.save(filename_monthly_analysis)
     subprocess.run(['open', '-a', 'Microsoft Excel', '/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx' ])
+    return list_metrics[months[last_index]]
 
 def generateNewsletter(template,news):
     html = newsletter.preencher_template_informe_semanal(template,news)
@@ -343,3 +347,35 @@ def generateNewsletter(template,news):
         file.write(html)
         
     return html
+
+def createSlideForShowcase(path, nome_da_aba):
+
+    # Carregar a aba específica em um DataFrame
+    df = pd.read_excel(path, sheet_name=nome_da_aba)
+    
+    df['cycletime'] = df['cycle time'] + "\n (" + df['cycletime_diff'] + ")"
+    df['dt'] = df['DT Total'].astype(str) + " / " + df['DT Done'].astype(str)
+    df['bugs'] = df['Bugs Total'].astype(str) + " / " + df['Bugs Done'].astype(str)
+    df['deploys'] = df['Total Deploys'].astype(str)
+    df['wb'] = df['work breakdown(newcode-refactor-rework)']
+    
+    #Removendo as coluna de não serão utilizadas
+    df = df[['owner','cycletime','dt','bugs','deploys','wb']]
+    
+    #Criando o dicionario com as colunas
+    data = {}
+    # Iterando sobre o DataFrame usando iterrows()
+    for indice, linha in df.iterrows():
+        valor_coluna_A = linha['owner']  # Obtendo o valor da coluna 'A'
+        
+        # Iterando sobre as outras colunas (exceto 'A') usando items()
+        for coluna, valor in linha.items():
+            if coluna != 'owner':  # Ignorando a coluna 'A'
+                chave = f"{valor_coluna_A}_{coluna}"  # Criando a chave concatenada
+                data[chave] = valor  # Armazenando no dicionário
+    # print(list(data.keys()))
+    path_new_presentation = f'/Users/alexfrisoneyape/Development/EM-projects/{nome_da_aba} - Deck de Metricas.pptx'
+    powerpoint.replace_hashtags_slide('/Users/alexfrisoneyape/Development/EM-projects/assets/Template - Deck de Metricas.pptx',data, path_new_presentation)
+    subprocess.run(['open', path_new_presentation])
+    #Enviar o caminho da apresentacao
+    return 0
