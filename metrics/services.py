@@ -135,9 +135,9 @@ def appendTribe(owner_tribe, filter, df):
     review_time_minutes = int(df_filtrado['review_raw'].sum()/len(filter))
     deploy_time_minutes = int(df_filtrado['deploy_raw'].sum()/len(filter))
     new_df['Bugs Total'] = int(df_filtrado['Bugs Total'].sum())
-    # new_df['Bugs Done'] = int(df_filtrado['dt_total_raw'].sum())
+    new_df['Bugs Done'] = int(df_filtrado['Bugs Done'].sum())
     new_df['DT Total'] = int(df_filtrado['DT Total'].sum())
-    # new_df['DT Done'] = int(df_filtrado['dt_total_raw'].sum())
+    new_df['DT Done'] = int(df_filtrado['DT Done'].sum())
     new_df['cycle time (minutes)'] = cycle_time_minutes
     new_df['coding_raw'] = coding_time_minutes
     new_df['pickup_raw'] = pickup_time_minutes
