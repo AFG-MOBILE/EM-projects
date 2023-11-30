@@ -17,10 +17,8 @@ def replace_hashtags_slide(path_presentation, data, path_new_presentation):
                             # print(paragraph.text)
                             if '#' in paragraph.text:
                                 text = paragraph.text
-                                print(f"encontrado a {text}")
                                 for chave, valor in data.items():
                                     text = text.replace(f'#{chave}#', str(valor))
-                                    print(f"texto substituito por {text}")
                                 paragraph.text = text
                                 paragraph.font.size = Pt(11)
                                 paragraph.font.color.rgb = RGBColor(116,35,133)
