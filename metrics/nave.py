@@ -219,8 +219,8 @@ def getCardsByLabel(month, year, labels):
 
     data = pd.DataFrame()
     for dashboard in list(__getDashboards().keys()):
-        url_dashboard = __loadDashboardByMonthYear(dashboard, month, year)   
-        __download_csv(url_dashboard, f'{dashboard}-{year}-{month}.csv')
+        # url_dashboard = __loadDashboardByMonthYear(dashboard, month, year)   
+        # __download_csv(url_dashboard, f'{dashboard}-{year}-{month}.csv')
         # Load the CSV file into a DataFrame
         data_dashboard = pd.read_csv(f'{dashboard}-{year}-{month}.csv')
         data_dashboard['Owner'] = dashboard

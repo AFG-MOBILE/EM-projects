@@ -155,7 +155,7 @@ def convert_date_format(str):
     return date_obj.strftime('%Y-%m-%d')
 
 def yape_colors():
-    return ['#b2afaf','#a86ebb','#5dd5b1','#66ceb7', '#f34a5a', '#69217a', '#cd384f','#7f7f7f']
+    return ['#b2afaf','#a86ebb','#5dd5b1','#66ceb7', '#f34a5a', '#69217a', '#cd384f','#7f7f7f','#ffc000']
 
 def compare_metrics(result):
     simbolos = ['⬆', '⬇', '⁃']

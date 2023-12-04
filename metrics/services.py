@@ -13,6 +13,8 @@ import graphics
 import newsletter
 import subprocess
 import powerpoint
+import math
+
 
 @cache_yape.daily_cache_clear
 @functools.lru_cache(maxsize=None)
@@ -100,7 +102,7 @@ def getAllMetrics(month, year):
     merged_grouped_diff['release'] = merged_grouped_diff['release'].apply(int)
     merged_grouped_diff['Total Deploys'] = merged_grouped_diff['Total Deploys'].apply(int)
     merged_grouped_diff['Total Deploys'] = merged_grouped_diff.apply(lambda x: f"{x['Total Deploys']} ({x['qa']} - {x['staging']} - {x['release']})", axis=1)
-
+    merged_grouped_diff['total_release_deploy_raw'] = merged_grouped_diff['release'].apply(int)
     inicio, fim = commons_yape.get_start_end_dates(year,month)
     periodo = f"{inicio.replace('/','-')}_{fim.replace('/','-')}"
     merged_grouped_diff = merged_grouped_diff.reset_index()
@@ -120,7 +122,8 @@ def getAllMetrics(month, year):
     df_raw.rename(columns={'cycle time (minutes)': 'cycletime_raw'}, inplace=True)
     df_raw.rename(columns={'Bugs Total': 'bugs_total_raw'}, inplace=True)
     df_raw.rename(columns={'DT Total': 'dt_total_raw'}, inplace=True)
-    df_raw = df_raw[['owner','cycletime_raw','coding_raw', 'pickup_raw', 'review_raw', 'deploy_raw','refactor_raw','rework_raw','bugs_total_raw','dt_total_raw']]
+    df_raw = df_raw[['owner','cycletime_raw','coding_raw', 'pickup_raw', 'review_raw', 'deploy_raw','refactor_raw','rework_raw','bugs_total_raw','dt_total_raw','total_release_deploy_raw']]
+    print(df_raw)
     return periodo, df_filtrado, df_raw
 
 def appendTribe(owner_tribe, filter, df):
@@ -175,8 +178,13 @@ def comparar_colunas(df1, df2, colunas, sufixo_unicode='_unicode', sufixo_difere
     for coluna in colunas_comuns:
         nome_coluna_unicode = coluna + sufixo_unicode
         nome_coluna_diferenca = coluna + sufixo_diferenca 
-        df_diff[nome_coluna_unicode] = df_diff[coluna].compare(df2[coluna]).apply(
-            lambda x: "⬆ -" if x['self'] > x['other'] else ("⬇ +" if x['self'] < x['other'] else "="), axis=1)
+        print(coluna)
+        if coluna == 'total_release_deploy_raw':
+            df_diff[nome_coluna_unicode] = df_diff[coluna].compare(df2[coluna]).apply(
+            lambda x: "⬆ +" if x['self'] < x['other'] else ("⬇ -" if x['self'] > x['other'] else "="), axis=1)
+        else:
+            df_diff[nome_coluna_unicode] = df_diff[coluna].compare(df2[coluna]).apply(
+                lambda x: "⬆ -" if x['self'] > x['other'] else ("⬇ +" if x['self'] < x['other'] else "="), axis=1)
         df_diff[nome_coluna_diferenca] = df_diff[coluna].compare(df2[coluna]).apply(
             lambda x: abs(x['self'] - x['other']), axis=1)
     df_diff = df_diff[['owner', 'cycletime_raw_unicode',
@@ -184,7 +192,7 @@ def comparar_colunas(df1, df2, colunas, sufixo_unicode='_unicode', sufixo_difere
        'pickup_raw_unicode', 'pickup_raw_diff', 'review_raw_unicode',
        'review_raw_diff', 'deploy_raw_unicode', 'deploy_raw_diff',
        'refactor_raw_unicode', 'refactor_raw_diff', 'rework_raw_unicode',
-       'rework_raw_diff', 'refactor_raw', 'rework_raw','bugs_total_raw_unicode','dt_total_raw_unicode','bugs_total_raw_diff','dt_total_raw_diff']]
+       'rework_raw_diff', 'refactor_raw', 'rework_raw','bugs_total_raw_unicode','dt_total_raw_unicode','bugs_total_raw_diff','dt_total_raw_diff','total_release_deploy_raw_unicode','total_release_deploy_raw_diff']]
     
     df_diff['refactor_raw_diff'] = df_diff['refactor_raw_diff'].round(2)
     df_diff['refactor_raw_diff'] = df_diff['refactor_raw_diff'].astype(str)
@@ -199,11 +207,15 @@ def comparar_colunas(df1, df2, colunas, sufixo_unicode='_unicode', sufixo_difere
     df_diff['rework_diff'] = df_diff['rework_raw_unicode'] + " " +  df_diff['rework_raw_diff'] + "%"
     df_diff['deploy_diff'] = df_diff['deploy_diff'].fillna("=")
     df_diff['bugs_total_diff'] = df_diff['bugs_total_raw_unicode'] + " " + df_diff['bugs_total_raw_diff'].round(2).astype(str)
+    df_diff['bugs_total_diff'] = df_diff['bugs_total_diff'].fillna("=")
     df_diff['dt_total_diff'] = df_diff['dt_total_raw_unicode'] + " " + df_diff['dt_total_raw_diff'].round(2).astype(str)
+    df_diff['dt_total_diff'] = df_diff['dt_total_diff'].fillna("=")
+    df_diff['total_release_deploy_diff'] = df_diff['total_release_deploy_raw_unicode'] + " " + df_diff['total_release_deploy_raw_diff'].round(2).astype(str)
+    df_diff['total_release_deploy_diff'] = df_diff['total_release_deploy_diff'].fillna("=")
     df_diff = df_diff[['owner', 
        'cycletime_diff', 'coding_diff',
        'pickup_diff', 'review_diff', 'deploy_diff', 
-       'refactor_diff', 'rework_diff','bugs_total_diff','dt_total_diff']]
+       'refactor_diff', 'rework_diff','bugs_total_diff','dt_total_diff','total_release_deploy_diff']]
     return df_diff
 
 def postReleasesInLinearB(days=3):
@@ -313,7 +325,7 @@ def checkMetricsByMonth(months, year):
         list_metrics_raw[month] = metrics_raw
         list_metrics[month] = metrics
     
-    colunas_para_comparar = ['cycletime_raw', 'coding_raw', 'pickup_raw', 'review_raw', 'deploy_raw', 'refactor_raw', 'rework_raw', 'bugs_total_raw', 'dt_total_raw']
+    colunas_para_comparar = ['cycletime_raw', 'coding_raw', 'pickup_raw', 'review_raw', 'deploy_raw', 'refactor_raw', 'rework_raw', 'bugs_total_raw', 'dt_total_raw','total_release_deploy_raw']
     df = comparar_colunas(list_metrics_raw[months[second_last_index]],list_metrics_raw[months[last_index]], colunas_para_comparar)
     merged_grouped_diff = pd.merge(list_metrics[months[last_index]], df, left_index=True, right_index=True, how='outer')
     merged_grouped_diff = merged_grouped_diff.drop('owner_y', axis=1)
@@ -352,12 +364,13 @@ def createSlideForShowcase(path, nome_da_aba):
 
     # Carregar a aba específica em um DataFrame
     df = pd.read_excel(path, sheet_name=nome_da_aba)
-    
+    df.fillna(0, inplace=True)
     df['cycletime'] = df['cycle time'] + "\n (" + df['cycletime_diff'] + ")"
-    df['dt'] = df['DT Total'].astype(str) + " / " + df['DT Done'].astype(str)
-    df['bugs'] = df['Bugs Total'].astype(str) + " / " + df['Bugs Done'].astype(str)
-    df['deploys'] = df['Total Deploys'].astype(str)
-    df['wb'] = df['work breakdown(newcode-refactor-rework)']
+    df = df.fillna("=")
+    df['dt'] = df['DT Total'].astype(str) + " / " + df['DT Done'].astype(str) + "\n (" + df['dt_total_diff'].astype(str) + ")"
+    df['bugs'] = df['Bugs Total'].astype(str) + " / " + df['Bugs Done'].astype(str) + "\n (" + df['bugs_total_diff'].astype(str) + ")"
+    df['deploys'] = df['Total Deploys'].astype(str) + "\n (" + df['total_release_deploy_diff'].astype(str) + ")"
+    df['wb'] = df['work breakdown(newcode-refactor-rework)'] + "\n (" + df['refactor_diff'].astype(str) + " / " + df['rework_diff'].astype(str) + ")"
     
     #Removendo as coluna de não serão utilizadas
     df = df[['owner','cycletime','dt','bugs','deploys','wb']]
