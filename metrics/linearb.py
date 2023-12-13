@@ -557,3 +557,147 @@ def get_measurementsByTeam(teamIds, owner, month, year):
         metric_log.log_critical(f"Falha na solicitação - Código de status: {response.status_code} - request data:{data} - response:{response.text}")
         print(f"Falha na solicitação - Código de status: {response.status_code} - request data:{data} - response:{response.text}")
         return {}    
+
+@cache_yape.daily_cache_clear
+@functools.lru_cache(maxsize=None)
+def get_measurementsByContributors(contributorIds, contributorName, month, year, byDay = False):
+    inicio_linearb, fim_linearb = commons_yape.get_start_end_dates_format(year,month,'%Y-%m-%d')
+    
+    API_URL = 'https://public-api.linearb.io/api/v2/measurements'
+    API_KEY = os.getenv('API_KEY')
+    
+    requestedMetrics = [ 
+                          {
+                           "name":"branch.computed.cycle_time",
+                           "agg": "avg"
+                          },
+                          {
+                             "name":"commit.total_changes"
+                          },
+                          {
+                             "name":"commit.activity.new_work.count"
+                          },
+                          {
+                             "name":"commit.activity.refactor.count"
+                          },
+                          {
+                             "name":"commit.activity.rework.count"
+                          },
+                          {
+                             "name":"pr.reviews"
+                          },
+                          {
+                             "name":"pr.new"
+                          },
+                          {
+                             "name":"pr.merged"
+                          },
+                          {
+                             "name":"commit.activity_days"
+                          }
+                          
+                        ]
+    time_ranges = [
+        {"after": f"{inicio_linearb}",
+        "before": f"{fim_linearb}"}
+    ]
+    if byDay == True:
+        data = {
+            "contributor_ids": contributorIds,
+            "roll_up": "1d",
+            "requested_metrics":requestedMetrics,
+            "time_ranges":time_ranges
+        }
+    else:
+        data = {
+            "contributor_ids": contributorIds,
+            "requested_metrics":requestedMetrics,
+            "time_ranges":time_ranges
+        }
+    headers = {
+        'accept': 'application/json',
+        'x-api-key': API_KEY,
+        'Content-Type': 'application/json'
+    }
+    response = requests.post(API_URL, json=data, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        all_metrics =[]
+        for data_row in data: 
+            metrics = {}
+            metrics['owner'] = contributorName
+            data_metric = data_row['metrics'][0]
+            data_date = data_row['after']
+            cycle_time = 0
+            if 'branch.computed.cycle_time:avg' not in data_metric or data_metric['branch.computed.cycle_time:avg'] is None:
+                cycle_time = 0
+            else:
+                cycle_time = data_metric['branch.computed.cycle_time:avg']
+            cycle_time_minutes = cycle_time
+            cycle_time = commons_yape.formatTime(cycle_time)
+            
+            new_code = 0
+            total_changes = 0
+            if 'commit.activity.new_work.count' not in data_metric or data_metric['commit.activity.new_work.count'] == 0 or data_metric['commit.activity.new_work.count'] is None:
+                new_code = 0
+                total_changes = 0
+            else:
+                new_code = (data_metric['commit.activity.new_work.count']*100)/data_metric['commit.total_changes']
+                new_code = round(new_code,2)
+                total_changes = data_metric['commit.total_changes']
+                total_changes = round(total_changes,2)
+
+            refactor = 0
+            if 'commit.activity.refactor.count' not in data_metric or data_metric['commit.activity.refactor.count'] == 0 or data_metric['commit.activity.refactor.count'] is None:
+                refactor = 0
+            else:
+                refactor = (data_metric['commit.activity.refactor.count']*100)/data_metric['commit.total_changes']
+                refactor = round(refactor,2)
+
+            rework = 0
+            if 'commit.activity.rework.count' not in data_metric or data_metric['commit.activity.rework.count'] == 0 or data_metric['commit.activity.rework.count'] is None:
+                rework = 0
+            else:
+                rework = (data_metric['commit.activity.rework.count']*100)/data_metric['commit.total_changes']
+                rework = round(rework,2)
+
+            pr_new = 0
+            if 'pr.new' not in data_metric or data_metric['pr.new'] == 0:
+                pr_new = 0
+            else:
+                pr_new = data_metric['pr.new']
+            
+            pr_reviews = 0
+            if 'pr.reviews' not in data_metric or data_metric['pr.reviews'] == 0:
+                pr_reviews = 0
+            else:
+                pr_reviews = data_metric['pr.reviews']
+
+            pr_merged = 0
+            if 'pr.merged' not in data_metric or data_metric['pr.merged'] == 0:
+                pr_merged = 0
+            else:
+                pr_merged = data_metric['pr.merged']
+
+            activity_days = 0
+            if 'commit.activity_days' not in data_metric or data_metric['commit.activity_days'] == 0:
+                activity_days = 0
+            else:
+                activity_days = data_metric['commit.activity_days']
+
+            metrics['date'] = data_date
+            # metrics['cycle time'] = f"{commons_yape.getBenchmark('cycleTime',cycle_time_minutes)} {commons_yape.formatTime(cycle_time_minutes)}"
+            metrics['cycle_time'] = round(cycle_time_minutes,0)
+            metrics['total_changes'] = total_changes
+            metrics['refactor'] = f"{refactor}%"
+            metrics['rework'] = f"{rework}%"
+            metrics['pr_new'] = pr_new
+            metrics['pr_reviews'] = pr_reviews
+            metrics['pr_merged'] = pr_merged
+            metrics['activity_days'] = activity_days
+            all_metrics.append(metrics)
+        return all_metrics
+    else:
+        metric_log.log_critical(f"Falha na solicitação - Código de status: {response.status_code} - request data:{data} - response:{response.text}")
+        print(f"Falha na solicitação - Código de status: {response.status_code} - request data:{data} - response:{response.text}")
+        return {}   

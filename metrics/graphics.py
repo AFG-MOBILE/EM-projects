@@ -140,3 +140,36 @@ def plot_bugs_restantes_por_mes(dataframe):
 
     # Exibindo o gráfico
     plt.show()
+
+def plot_cycle_time_by_week(df):
+    # Converter 'week_start' para categoria para preservar a ordem na visualização do gráfico
+    df['week_start'] = pd.Categorical(df['week_start'], categories=df['week_start'].unique(), ordered=True)
+
+    # Criar o gráfico
+    plt.figure(figsize=(7, 5))
+
+    # Definindo a cor cinza claro para o fundo do gráfico, eixos e grid
+    # plt.rcParams['axes.facecolor'] = 'lightgrey'
+    plt.rcParams['axes.edgecolor'] = '#b2afaf'
+    plt.rcParams['xtick.color'] = '#b2afaf'  # Cor do texto do eixo x
+    plt.rcParams['ytick.color'] = '#b2afaf'  # Cor do texto do eixo y
+    plt.rcParams['grid.color'] = '#b2afaf'
+
+    # Iterar sobre os owners
+    for owner, data in df.groupby('owner'):
+        if owner == 'chapter':
+            plt.plot(data['week_start'], data['cycle_time'], marker='o', label=owner, linestyle='-.', color='#b2afaf')
+        elif owner == 'team':
+            color_beige = (0.9608, 0.8706, 0.702)
+            plt.plot(data['week_start'], data['cycle_time'], marker='o', label=owner, linestyle='--', color=color_beige)
+        else:
+            plt.plot(data['week_start'], data['cycle_time'], marker='o', label=owner, color='#a86ebb')
+        # plt.plot(data['week_start'], data['cycle_time'], marker='o', label=owner)
+
+    # plt.title('Cycle Time por Semana e Owner')
+    # plt.xlabel('Semana')
+    # plt.ylabel('Cycle Time')
+    # plt.legend()
+    # plt.grid(True)
+    plt.grid(axis='y')
+    plt.show()

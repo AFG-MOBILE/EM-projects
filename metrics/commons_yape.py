@@ -165,3 +165,6 @@ def compare_metrics(result):
     elif (result == 'isWorse'):
         return simbolos[1]
     return simbolos[2]
+
+def get_week_number(row):
+    return f"{(row['date'].day - 1) // 7 + 1}w"

@@ -13,7 +13,11 @@ import graphics
 import newsletter
 import subprocess
 import powerpoint
-import math
+import numpy as np
+import calendar
+from pptx import Presentation
+from pptx.util import Inches, Pt
+
 
 
 @cache_yape.daily_cache_clear
@@ -392,3 +396,124 @@ def createSlideForShowcase(path, nome_da_aba):
     subprocess.run(['open', path_new_presentation])
     #Enviar o caminho da apresentacao
     return 0
+
+def createInfographicContributor(month,year, contributor, team_ids, chapter_ids):
+    #obter os dados do contributor
+    metrics_contributorByDay = linearb.get_measurementsByContributors(tuple(contributor['id']),contributor['name'],month,year, True)
+    df_metrics_contributor_by_day = pd.DataFrame(metrics_contributorByDay)
+    # Coletando apenas a informações necessarias para o informe
+    df_metrics_contributor_by_day = df_metrics_contributor_by_day[['owner','date','cycle_time', 'activity_days']]
+    df_metrics_contributor_by_week = getCycleTimeMetricsByWeek(df_metrics_contributor_by_day)
+    
+    metrics_contributor = linearb.get_measurementsByContributors(tuple(contributor['id']),contributor['name'],month,year, False)
+    df_metrics_contributor = pd.DataFrame(metrics_contributor)
+    df_metrics_contributor = df_metrics_contributor[['owner','total_changes','refactor', 'rework','pr_new','pr_merged','pr_reviews']]
+    
+    # coletando as metricas do time
+    metrics_teamByDay = linearb.get_measurementsByContributors(tuple(team_ids),"team",month,year, True)
+    metrics_teamByDay = pd.DataFrame(metrics_teamByDay)
+    # Coletando apenas a informações necessarias para o informe
+    metrics_teamByDay = metrics_teamByDay[['owner','date','cycle_time', 'activity_days']]
+    df_metrics_team_by_week = getCycleTimeMetricsByWeek(metrics_teamByDay)
+    # print(metrics_teamByDay)
+    calendar = fill_table_with_activity_days(month,year,metrics_teamByDay)
+    print(calendar)
+    exit(0)
+
+    # coletando as metricas do time
+    metrics_chapterByDay = linearb.get_measurementsByContributors(tuple(chapter_ids),"chapter",month,year, True)
+    metrics_chapterByDay = pd.DataFrame(metrics_chapterByDay)
+    # Coletando apenas a informações necessarias para o informe
+    metrics_chapterByDay = metrics_chapterByDay[['owner','date','cycle_time', 'activity_days']]
+    df_metrics_chapter_by_week = getCycleTimeMetricsByWeek(metrics_chapterByDay)
+
+    df_cycle_time_metrics = pd.concat([df_metrics_contributor_by_week, df_metrics_team_by_week, df_metrics_chapter_by_week], ignore_index=True)
+    graphics.plot_cycle_time_by_week(df_cycle_time_metrics)
+    return 0
+
+def getCycleTimeMetricsByWeek(df_metrics_contributor_by_day):
+    # Convertendo a coluna 'date' para o tipo datetime
+    df_metrics_contributor_by_day['date'] = pd.to_datetime(df_metrics_contributor_by_day['date'])
+    # Extraindo o dia da semana (0=segunda-feira, 6=domingo)
+    df_metrics_contributor_by_day['day_of_week'] = df_metrics_contributor_by_day['date'].dt.dayofweek
+    # Filtrando os dados excluindo os fins de semana (sábado e domingo)
+    filtered_df = df_metrics_contributor_by_day[(df_metrics_contributor_by_day['day_of_week'] != 5) & (df_metrics_contributor_by_day['day_of_week'] != 6)].copy()
+    # Definindo a nova semana iniciando na segunda-feira (0=segunda-feira)
+    filtered_df.loc[:, 'week_start'] = filtered_df['date'] - pd.to_timedelta((filtered_df['date'].dt.dayofweek + 1) % 7, unit='d')
+    # Aplicando a função para calcular e substituir os valores da coluna 'week_start'
+    filtered_df['week_start'] = filtered_df.apply(commons_yape.get_week_number, axis=1)
+    df_metrics_contributor_by_week = filtered_df.groupby(['owner', 'week_start']).agg({
+        'cycle_time': 'sum',
+        'date': 'count'
+    }).reset_index()
+    # Renomeando as colunas
+    df_metrics_contributor_by_week.rename(columns={'date': 'activity_days'}, inplace=True)
+    df_metrics_contributor_by_week = df_metrics_contributor_by_week[['owner','week_start','cycle_time']]
+    return df_metrics_contributor_by_week
+
+def fill_table_with_activity_days(month, year, data):
+    # Obter o número de dias no mês e o dia da semana correspondente ao dia 1
+    num_days = calendar.monthrange(year, month)[1]
+    start_day = calendar.weekday(year, month, 1)  # 0 = segunda-feira, 6 = domingo
+
+    # Cabeçalho dos dias da semana
+    days_of_week = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+    # Criar uma matriz vazia 5x7
+    table = [['' for _ in range(7)] for _ in range(5)]
+
+    # Preencher a primeira linha com os dias da semana
+    table[0] = days_of_week
+
+    # Preencher a segunda linha com as datas do mês
+    current_date = pd.to_datetime(f"{year}-{month}-01")
+    current_day = current_date.day
+    for i in range(start_day, 7):
+        if current_date in data['date'].values:
+            index = data[data['date'] == current_date].index[0]
+            value = data.at[index, 'activity_days']
+            # Definir emoji baseado no valor da atividade
+            emoji = '🟢' if value == 1 else '⚪'
+            table[1][i] = emoji
+        current_date += pd.DateOffset(days=1)
+        current_day += 1
+
+    # Preencher as linhas restantes com as atividades do mês
+    for i in range(2, 5):
+        for j in range(7):
+            if current_day <= num_days:
+                if current_date in data['date'].values:
+                    index = data[data['date'] == current_date].index[0]
+                    value = data.at[index, 'activity_days']
+                    # Definir emoji baseado no valor da atividade
+                    emoji = '🟢' if value == 1 else '⚪'
+                    table[i][j] = emoji
+                current_date += pd.DateOffset(days=1)
+                current_day += 1
+
+    # Criar um DataFrame com a matriz e retornar
+    df_table = pd.DataFrame(table)
+    return df_table
+
+def create_activity_table_slide(df):
+    # Criando uma apresentação do PowerPoint
+    prs = Presentation()
+
+    # Adicionando um slide em branco
+    slide_layout = prs.slide_layouts[5]  # Escolha do layout adequado para adicionar uma tabela
+    slide = prs.slides.add_slide(slide_layout)
+
+    # Adicionando uma tabela ao slide
+    rows, cols = df.shape
+    table = slide.shapes.add_table(rows + 1, cols, Inches(9.74), Inches(9.42), Inches(6.29), Inches(2.54)).table
+
+    # Preenchendo a tabela com os dados do DataFrame
+    for i, column in enumerate(df.columns):
+        table.cell(0, i).text = column  # Definindo os cabeçalhos da tabela na primeira linha
+        for j in range(rows):
+            table.cell(j + 1, i).text = str(df.iloc[j, i])  # Preenchendo os dados nas células
+
+    # Salvando a apresentação
+    path_new_presentation = f'/Users/alexfrisoneyape/Development/EM-projects/tabela_atividades.pptx'
+    prs.save(path_new_presentation)
+    subprocess.run(['open', path_new_presentation])
