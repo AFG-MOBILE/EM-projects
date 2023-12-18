@@ -392,3 +392,22 @@ def createSlideForShowcase(path, nome_da_aba):
     subprocess.run(['open', path_new_presentation])
     #Enviar o caminho da apresentacao
     return 0
+
+
+@cache_yape.daily_cache_clear
+@functools.lru_cache(maxsize=None)
+def getInfoDevOps(month, year):
+    periodo, count_accesos_created, count_accesos_done, accesos, total_acesos = nave.getCardsByLabel(month,year, tuple(['accesos']))
+    # Agrupando por owner e contando os acessos de cada stage
+    grouped1 = accesos.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
+    grouped1['Accesos Done'] = grouped1.sum(axis=1)
+    grouped1 = grouped1[['Accesos Done']]
+
+    periodo, count_apoyos_created, count_apoyos_done, apoyos, total_apoyos = nave.getCardsByLabel(month,year, tuple(['apoyo']))
+    # Agrupando por owner e contando os apoios de cada stage
+    grouped2 = apoyos.groupby('Owner')['Task name'].value_counts().unstack(fill_value=0)
+    grouped2['Apoyos Done'] = grouped2.sum(axis=1)
+    grouped2 = grouped2[['Apoyos Done']]
+
+    group = pd.merge(grouped2, grouped1, left_index=True, right_index=True, how='outer')
+    return periodo, group

@@ -198,7 +198,8 @@ def __getDashboards():
             'owner_tipodecambio':'655e60780fe84fad40dac901',
             'owner_crm':'6560e39c17729a6b12e5b268',
             'owner_insurance':'655e60e60fe84fad40dacb82',
-            'owner_krossboarder-remesas':'655e600549a6901b4b8dca4a'
+            'owner_krossboarder-remesas':'655e600549a6901b4b8dca4a',
+            'owner_devops':'6569d70ea2ddf02373ec59b6' 
             }
     return dashboards
 
@@ -219,8 +220,8 @@ def getCardsByLabel(month, year, labels):
 
     data = pd.DataFrame()
     for dashboard in list(__getDashboards().keys()):
-        # url_dashboard = __loadDashboardByMonthYear(dashboard, month, year)   
-        # __download_csv(url_dashboard, f'{dashboard}-{year}-{month}.csv')
+        url_dashboard = __loadDashboardByMonthYear(dashboard, month, year)   
+        __download_csv(url_dashboard, f'{dashboard}-{year}-{month}.csv')
         # Load the CSV file into a DataFrame
         data_dashboard = pd.read_csv(f'{dashboard}-{year}-{month}.csv')
         data_dashboard['Owner'] = dashboard
