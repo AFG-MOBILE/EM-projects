@@ -3,7 +3,7 @@ import pandas as pd
 import services
 import subprocess
 
-MONTH = 10
+MONTH = 12
 YEAR = 2023
 
 def checkDeckMetrics():
@@ -15,6 +15,6 @@ def checkDeckMetrics():
 if __name__ == "__main__":
     metric_log.config_metric_log()
     
-    df_metrics = services.checkMetricsByMonth([10,11], YEAR) 
-    services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Noviembre')
+    df_metrics = services.checkMetricsByMonth([11,12], YEAR) 
+    services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Diciembre')
     

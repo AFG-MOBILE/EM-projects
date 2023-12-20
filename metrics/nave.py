@@ -194,6 +194,7 @@ def __getDashboards():
     dashboards = {
             'owner_marketplace':'6556179749a6901b4b68605c', 
             'owner_promos':'655d1fe149a6901b4b5286e4',
+            'owner_ticketing':'655f7df0f0e11ab8b422912b',
             'owner_gas':'65561a084faca135b9a13be1',
             'owner_tipodecambio':'655e60780fe84fad40dac901',
             'owner_crm':'6560e39c17729a6b12e5b268',
