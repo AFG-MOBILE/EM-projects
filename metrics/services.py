@@ -108,11 +108,11 @@ def getAllMetrics(month, year):
     merged_grouped_diff = merged_grouped_diff.reset_index()
     merged_grouped_diff = merged_grouped_diff.rename(columns={'index': 'owner'})
 
-    owner_para_filtrar = ["owner_checkout","owner_crm","owner_gas","owner_insurance","owner_krossboarder-remesas","owner_marketplace","owner_promos","owner_tap2phone","owner_tipodecambio", "retail"]
+    owner_para_filtrar = ["owner_checkout", "owner_crm", "owner_gas", "owner_insurance", "owner_krossboarder-remesas", "owner_marketplace", "owner_promos", "owner_ticketing", "owner_tap2phone", "owner_tipodecambio", "retail"]
     df_filtrado = merged_grouped_diff[merged_grouped_diff['owner'].isin(owner_para_filtrar)]
     df_filtrado = df_filtrado.rename(columns={'index': 'owner'})
     print("add dados por tribos")
-    df_filtrado = appendTribe("retail", ["owner_gas","owner_marketplace","owner_promos"],df_filtrado)
+    df_filtrado = appendTribe("retail", ["owner_gas","owner_marketplace","owner_promos","owner_ticketing"],df_filtrado)
     df_filtrado = appendTribe("financial", ["owner_tipodecambio","owner_krossboarder-remesas","owner_insurance"],df_filtrado)
     df_filtrado = appendTribe("negocios", ["owner_checkout","owner_tap2phone"],df_filtrado)
     df_filtrado = appendTribe("product cx", ["owner_crm"],df_filtrado)
