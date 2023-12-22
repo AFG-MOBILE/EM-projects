@@ -15,6 +15,7 @@ def checkDeckMetrics():
 if __name__ == "__main__":
     metric_log.config_metric_log()
     
-    df_metrics = services.checkMetricsByMonth([11,12], YEAR) 
-    services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Diciembre')
+    # df_metrics = services.checkMetricsByMonth([11,12], YEAR) 
+    # services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Diciembre')
+    services.getInfoReleasesYear()
     

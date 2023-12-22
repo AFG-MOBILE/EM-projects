@@ -392,3 +392,37 @@ def createSlideForShowcase(path, nome_da_aba):
     subprocess.run(['open', path_new_presentation])
     #Enviar o caminho da apresentacao
     return 0
+
+@cache_yape.daily_cache_clear
+@functools.lru_cache(maxsize=None)
+def getInfoReleasesYear():
+    # Data de início para listar releases
+    inicio, fim = commons_yape.get_start_end_dates(2023,12)
+    periodo = f'inicio: {inicio} - fim: {fim}'
+    print(periodo)
+    exit(0)
+    # Data de início para listar releases
+    data_inicial = datetime.strptime(f'{inicio} 00:00:00', '%d/%m/%y %H:%M:%S') #datetime.now()
+    data_final = datetime.strptime(f'{fim} 23:59:59', '%d/%m/%y %H:%M:%S') #datetime.now()
+    data_inicial_query_datadog = round(data_inicial.timestamp()) * 1000
+    data_final_query_datadog = round(data_final.timestamp()) * 1000
+    # Data de início para listar releases
+    data_inicial = datetime.strptime(f'{inicio} 00:00:00', '%d/%m/%y %H:%M:%S') #datetime.now()
+    data_final = datetime.strptime(f'{fim} 23:59:59', '%d/%m/%y %H:%M:%S') #datetime.now()
+    data_inicial_query_datadog = round(data_inicial.timestamp()) * 1000
+    data_final_query_datadog = round(data_final.timestamp()) * 1000
+    
+    releaseQA = datadog.getReleasesQA(data_inicial_query_datadog,data_final_query_datadog)
+    releaseStaging = datadog.getReleasesStaging(data_inicial_query_datadog,data_final_query_datadog)
+    releaseProduction = datadog.getReleasesProduction(data_inicial_query_datadog,data_final_query_datadog)
+    release = releaseQA + releaseStaging + releaseProduction
+
+    df_release = pd.DataFrame(release)
+    # Filtrando os deploys com status "success"
+    df_release_successful = df_release[df_release['status'] == 'success']
+    # Agrupando por owner e contando os deploys de cada stage
+    grouped1 = df_release_successful.groupby('owner')['stage'].value_counts().unstack(fill_value=0)
+    # Adicionando uma nova coluna com a soma total de deploys por owner
+    grouped1['Total Deploys'] = grouped1.sum(axis=1)
+    grouped1 = grouped1[['Total Deploys', 'qa', 'staging', 'release']]
+    return periodo, grouped1
