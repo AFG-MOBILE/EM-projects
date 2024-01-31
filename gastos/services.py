@@ -184,9 +184,10 @@ def _calTax(items):
 
 def exportSpreadsheet(str,path_excel_file):
     items = commons.create_data_from_filenames(str)
+    print(items)
     data, total_tax = _calTax(items)
     df = pd.DataFrame(data)
-
+    print(df)
     # Exportando o DataFrame para Excel
     df.to_excel(path_excel_file, index=False)
     # Abrir o arquivo
@@ -222,7 +223,7 @@ def getCardExtract(data_inicio,data_fim, threshold):
     selected_transactions = selected_transactions.sort_values(by='time', ascending=False)
     selected_transactions["time"] = pd.to_datetime(selected_transactions["time"], format='ISO8601').dt.strftime('%d/%m/%Y')
     df_to_excel = selected_transactions[["time","item_escritorio", "amount","description"]]
-    df_to_excel.to_excel('/Users/alexfrisoneyape/Desktop/Gastos/test/recibos/gastos_escritorio.xlsx', index=False)
+    df_to_excel.to_excel('/Users/alexfrisoneyape/Desktop/Gastos/template/recibos/gastos_escritorio.xlsx', index=False)
 
 
 def __get_top_transactions_by_period(start_date: str, end_date: str, card_data):

@@ -48,6 +48,7 @@ def getReleasesQA(data_inicial, data_final):
             "limit": 5000
         }
     }
+    print(f"datadog: {data}")
     # Faça a solicitação POST usando a biblioteca requests
     response = requests.post(url, data=json.dumps(data), headers=headers)
     # Verifique a resposta
@@ -84,6 +85,7 @@ def getReleasesStaging(data_inicial, data_final):
             "limit": 5000
         }
     }
+    print(f"datadog: {data}")
     # Faça a solicitação POST usando a biblioteca requests
     response = requests.post(url, data=json.dumps(data), headers=headers)
     # Verifique a resposta
@@ -120,6 +122,7 @@ def getReleasesProduction(data_inicial, data_final):
             "limit": 5000
         }
     }
+    print(f"datadog: {data}")
     # Faça a solicitação POST usando a biblioteca requests
     response = requests.post(url, data=json.dumps(data), headers=headers)
     # Verifique a resposta
@@ -168,6 +171,7 @@ def getAllReleases(data_inicial, data_final):
             "limit": 50000
         }
     }
+    
     # Faça a solicitação POST usando a biblioteca requests
     response = requests.post(url, data=json.dumps(data), headers=headers)
     # Verifique a resposta

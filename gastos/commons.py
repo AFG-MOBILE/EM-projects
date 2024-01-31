@@ -21,6 +21,7 @@ def create_data_from_filenames(directory_path: str) -> pd.DataFrame:
     
 def ajusta_data_para_sexta(data_str: str) -> str:
     # Converte a string no formato 'dd/mm/yyyy' para um objeto datetime.date
+    # print(data_str)
     data = datetime.datetime.strptime(data_str, '%d/%m/%Y').date()
     
     # Verifica se a data é um sábado (5) ou domingo (6)

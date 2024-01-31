@@ -357,21 +357,22 @@ def get_measurements(servicesIds, owner, month, year):
             deploy_time = commons_yape.formatTime(deploy_time)
 
             new_code = 0
-            if 'commit.activity.new_work.count' not in data_metric or data_metric['commit.activity.new_work.count'] == 0:
+            # print(f"commit.activity.new_work.count: {data_metric['commit.activity.new_work.count']}")
+            if 'commit.activity.new_work.count' not in data_metric or data_metric['commit.activity.new_work.count'] == 0 or data_metric['commit.activity.new_work.count'] is None:
                 new_code = 0
             else:
                 new_code = (data_metric['commit.activity.new_work.count']*100)/data_metric['commit.total_changes']
                 new_code = round(new_code,2)
 
             refactor = 0
-            if 'commit.activity.refactor.count' not in data_metric or data_metric['commit.activity.refactor.count'] == 0:
+            if 'commit.activity.refactor.count' not in data_metric or data_metric['commit.activity.refactor.count'] == 0 or data_metric['commit.activity.refactor.count'] is None:
                 refactor = 0
             else:
                 refactor = (data_metric['commit.activity.refactor.count']*100)/data_metric['commit.total_changes']
                 refactor = round(refactor,2)
 
             rework = 0
-            if 'commit.activity.rework.count' not in data_metric or data_metric['commit.activity.rework.count'] == 0:
+            if 'commit.activity.rework.count' not in data_metric or data_metric['commit.activity.rework.count'] == 0 or data_metric['commit.activity.rework.count'] is None:
                 rework = 0
             else:
                 # metrics['rework'] = data_metric['commit.activity.rework.count']

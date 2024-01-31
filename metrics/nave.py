@@ -151,7 +151,8 @@ def __loadDashboardByMonthYear(dashboard, month, year):
         # A solicitação foi bem-sucedida
         data = response.json()
         return data['url']
-    else:   
+    else:
+        print(f"error: {url} {payload} - {response}")   
         print(response)
         exit(0)
 
@@ -177,8 +178,9 @@ def __loadDashboard(dashboard, data_inicio, data_fim):
         'to': fim,
         'type': 'csv'
     }
+    print(payload)
     # Realiza a solicitação POST
-    response = requests.post(url, headers=headers, json=payload)
+    response = requests.post(url, headers=headers, json=payload,timeout=5000)
 
     # Verifica a resposta
     if response.status_code == 200:
@@ -193,11 +195,12 @@ def __getDashboards():
     # TODO: add os ids de cada dashboard do nave conta yape
     dashboards = {
             'owner_marketplace':'6556179749a6901b4b68605c', 
-            'owner_promos':'655d1fe149a6901b4b5286e4',
-            'owner_ticketing':'655f7df0f0e11ab8b422912b',
+            'owner_promos':'65afd1e185e77b729dcdae99',
+            'owner_ticketing':'65aff710409d88d4e9e3c44d',
             'owner_gas':'65561a084faca135b9a13be1',
             'owner_tipodecambio':'655e60780fe84fad40dac901',
-            'owner_crm':'6560e39c17729a6b12e5b268',
+            'owner_checkout':'659f1fe2f55530a31b3090a1',
+            'owner_crm':'659daa38314b3073df38d2e8',
             'owner_insurance':'655e60e60fe84fad40dacb82',
             'owner_krossboarder-remesas':'655e600549a6901b4b8dca4a'
             }
@@ -211,8 +214,8 @@ def check_format(date_str):
     except:
         return False
 
-@cache_yape.daily_cache_clear
-@functools.lru_cache(maxsize=None)
+# @cache_yape.daily_cache_clear
+# @functools.lru_cache(maxsize=None)
 def getCardsByLabel(month, year, labels):
     if not commons_yape.isValidMonth(month, year):
         print('Mês informado é inválido')
@@ -220,12 +223,20 @@ def getCardsByLabel(month, year, labels):
 
     data = pd.DataFrame()
     for dashboard in list(__getDashboards().keys()):
-        # url_dashboard = __loadDashboardByMonthYear(dashboard, month, year)   
-        # __download_csv(url_dashboard, f'{dashboard}-{year}-{month}.csv')
+        try:
+            data_dashboard = pd.read_csv(f'{dashboard}-{year}-{month}.csv')
+        except:
+            print("ainda nao foi feito o download do csv")
+            url_dashboard = __loadDashboardByMonthYear(dashboard, month, year)   
+            __download_csv(url_dashboard, f'{dashboard}-{year}-{month}.csv')
         # Load the CSV file into a DataFrame
-        data_dashboard = pd.read_csv(f'{dashboard}-{year}-{month}.csv')
-        data_dashboard['Owner'] = dashboard
-        data = pd.concat([data, data_dashboard], ignore_index=True)
+        try:
+            data_dashboard = pd.read_csv(f'{dashboard}-{year}-{month}.csv')
+            data_dashboard['Owner'] = dashboard
+            data = pd.concat([data, data_dashboard], ignore_index=True)
+        except:
+            print("nao encontrado o arquivo")
+        
     
     # Identificando as linhas que têm datas no formato "%d %b %Y"
     mask = data['Start date'].apply(check_format)
