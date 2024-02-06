@@ -14,6 +14,7 @@ import newsletter
 import subprocess
 import powerpoint
 import math
+import trello
 
 
 @cache_yape.daily_cache_clear
@@ -393,3 +394,23 @@ def createSlideForShowcase(path, nome_da_aba):
     subprocess.run(['open', path_new_presentation])
     #Enviar o caminho da apresentacao
     return 0
+
+def check_activities_members(from_date,to_date):
+    id_done_list = "632b5ec4ee1230008bd34d7f"
+    df = trello.get_cards_in_Collumn_Done(id_done_list)
+    # Filtrar por data
+    df['dateLastActivity'] = pd.to_datetime(df['dateLastActivity']).dt.tz_localize(None)
+    # Verificando os formatos das datas e ajustando conforme necessário
+    
+    from_date = pd.to_datetime(from_date, dayfirst=True)
+    # Ajustando a data de fim para incluir o final do dia
+    to_date = pd.to_datetime(to_date, dayfirst=True) + pd.Timedelta(days=1) - pd.Timedelta(seconds=1)
+
+
+    # Verificando as datas máxima e mínima no DataFrame
+    print("Data mínima no DataFrame:", df['dateLastActivity'].min())
+    print("Data máxima no DataFrame:", df['dateLastActivity'].max())
+
+    filtered_df = df[(df['dateLastActivity'] >= from_date) & (df['dateLastActivity'] <= to_date)]
+
+    return filtered_df
