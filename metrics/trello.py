@@ -33,9 +33,9 @@ def get_actions_for_card(card_id, api_key, token, from_date, to_date):
     params = {
         'key': api_key,
         'token': token,
-        'filter': 'addMemberToCard',
-        'before': to_date,
-        'since': from_date
+        'filter': 'addMemberToCard'
+        # 'before': to_date,
+        # 'since': from_date
     }
     response = requests.get(url, params=params)
     return response.json() if response.status_code == 200 else []
@@ -88,6 +88,72 @@ def get_card_in_done(list_id):
     cards = response.json() if response.status_code == 200 else []
     return cards
 
+# def filter_cards_by_column(cards, column_id,  api_key, token, from_date_str, to_date_str):
+#     # Convertendo as strings de data para objetos datetime
+#     from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
+#     to_date = datetime.strptime(to_date_str, '%Y-%m-%d')
+
+#     filtered_cards = []
+#     # Adicionando tqdm para acompanhar o progresso
+#     for card in tqdm(cards, desc='Filtering cards'):
+#         card_movements = get_card_movements(card['id'],api_key, token)
+#         # print(card_movements)
+#         for movement in card_movements:
+#             if 'listAfter' in movement and movement['listAfter']['id'] == column_id:
+#                 movement_date = datetime.strptime(movement['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
+#                 if from_date <= movement_date <= to_date:
+#                     filtered_cards.append(card)
+#                     break
+#     return filtered_cards
+
+def filter_cards_by_column(cards, column_id,  api_key, token, from_date_str, to_date_str):
+    # Convertendo as strings de data para objetos datetime
+    from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
+    to_date = datetime.strptime(to_date_str, '%Y-%m-%d')
+    # to_date = datetime.strptime(to_date_str + ' 23:59:59', '%Y-%m-%d %H:%M:%S')  # Adicionando o tempo para incluir o último segundo do dia
+
+
+    filtered_cards = []
+
+    def process_card(card):
+        card_movements = get_card_movements(card['id'],api_key, token)
+        
+        for movement in card_movements:
+            # print(f"{movement['data']['listAfter']['id']}")
+            # print(f"{movement['listAfter']['id']}")
+            # Verificando se o atributo 'listAfter' existe
+            if 'listAfter' in movement['data'] and movement['data']['listAfter']['id'] == column_id:
+                # print(f'{movement}')
+                movement_date = datetime.strptime(movement['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                # print(f"{from_date} <= {movement_date} <= {to_date}")
+                if from_date <= movement_date <= to_date:
+                    # print(f"[add card: {card['name']} - {movement_date}]")
+                    return card
+        return None
+
+    # Usando ThreadPoolExecutor para processar os cartões em paralelo
+    with ThreadPoolExecutor() as executor:
+        futures = [executor.submit(process_card, card) for card in cards]
+
+        # Adicionando tqdm para acompanhar o progresso
+        for future in tqdm(as_completed(futures), total=len(futures), desc='Filtering cards'):
+            filtered_card = future.result()
+            if filtered_card:
+                filtered_cards.append(filtered_card)
+
+    return filtered_cards
+
+def get_card_movements(card_id, api_key, token):
+    """Obtém o histórico de movimentações de um cartão."""
+    url = f"https://api.trello.com/1/cards/{card_id}/actions"
+    params = {
+        'key': api_key,
+        'token': token,
+        'filter': 'updateCard:idList'
+    }
+    response = requests.get(url, params=params)
+    return response.json() if response.status_code == 200 else []
+
 def memberInfoByCard(cards, from_date, to_date):
     # Coleta informações dos membros para cada card
     detailed_info = []
@@ -124,14 +190,19 @@ def generateMetricsTrello(board_id, list_id, filename, from_date, to_date):
     all_members = get_all_members(API_KEY, TOKEN, board_id)
     # Convertendo a lista de membros do quadro em um DataFrame
     members_df = pd.DataFrame(all_members)
-    print(members_df)
+    # print(members_df)
 
     cards = get_card_in_done(list_id)
-    df_all_cards = pd.DataFrame(cards)
+    # df_all_cards = pd.DataFrame(cards)
+
+    # Filtrar os cartões pela movimentação para a coluna desejada (cards, column_name, from_date_str, to_date_str):
+    filtered_cards = filter_cards_by_column(cards, list_id, API_KEY, TOKEN,from_date, to_date)
+    df_filtered_cards = pd.DataFrame(filtered_cards)
+    # print(filtered_cards)
     
-    df = memberInfoByCard(cards, from_date, to_date)
+    df = memberInfoByCard(filtered_cards, from_date, to_date)
 
     # Coleta informações sobre membros não encontrados nos cards
     not_found_df = members_df[~members_df['fullName'].isin(df['Member Name'])]
 
-    exportDataToExcel(filename,df,not_found_df, df_all_cards)
+    exportDataToExcel(filename,df,not_found_df, df_filtered_cards)

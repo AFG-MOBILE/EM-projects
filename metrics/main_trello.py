@@ -13,7 +13,6 @@ def execucao_diaria():
 
     trello.generateMetricsTrello(board_id,list_id, filename,from_date, to_date)
 
-    
 
 if __name__ == "__main__":
     metric_log.config_metric_log()
