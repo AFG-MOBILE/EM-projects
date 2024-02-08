@@ -36,17 +36,17 @@ if __name__ == "__main__":
     to_date = '2024-01-31'    # Formato aaaa-mm-dd
     filename = 'detailed_interactions_cards_done_list_'
     teams = [
-                # {
-                # "name": "marketplace",
-                # "list_id": "632b5ec4ee1230008bd34d7f",
-                # "board_id": "632b5ec4ee1230008bd34d6d",
-                # }
-                # ,
                 {
-                "name": "promos",
-                "list_id": "620cbb3308424a3f218f092a",
-                "board_id": "620c10ba5cfd7d4ce889d72a",
+                "name": "marketplace",
+                "list_id": "632b5ec4ee1230008bd34d7f",
+                "board_id": "632b5ec4ee1230008bd34d6d",
                 }
+                # ,
+                # {
+                # "name": "promos",
+                # "list_id": "620cbb3308424a3f218f092a",
+                # "board_id": "620c10ba5cfd7d4ce889d72a",
+                # }
             ]
     for team in teams:
         print(f"Getting {team['name']} data……")

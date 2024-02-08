@@ -103,46 +103,10 @@ def filter_cards_by_column(cards, column_id, api_key, token, from_date_str, to_d
                 if 'data' in movement and 'listAfter' in movement['data'] and movement['data']['listAfter']['id'] == column_id:
                     movement_date = datetime.strptime(movement['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
                     if from_date <= movement_date <= to_date:
+                        card['movement_date'] = movement_date
                         filtered_cards.append(card)
                         break  # Uma vez que encontramos o movimento válido, podemos parar de verificar os outros movimentos
     return filtered_cards
-
-# def filter_cards_by_column(cards, column_id,  api_key, token, from_date_str, to_date_str):
-#     # Convertendo as strings de data para objetos datetime
-#     from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
-#     to_date = datetime.strptime(to_date_str, '%Y-%m-%d')
-#     # to_date = datetime.strptime(to_date_str + ' 23:59:59', '%Y-%m-%d %H:%M:%S')  # Adicionando o tempo para incluir o último segundo do dia
-
-
-#     filtered_cards = []
-
-#     def process_card(card):
-#         card_movements = get_card_movements(card['id'],api_key, token)
-        
-#         for movement in card_movements:
-#             # print(f"{movement['data']['listAfter']['id']}")
-#             # print(f"{movement['listAfter']['id']}")
-#             # Verificando se o atributo 'listAfter' existe
-#             if 'listAfter' in movement['data'] and movement['data']['listAfter']['id'] == column_id:
-#                 # print(f'{movement}')
-#                 movement_date = datetime.strptime(movement['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-#                 # print(f"{from_date} <= {movement_date} <= {to_date}")
-#                 if from_date <= movement_date <= to_date:
-#                     # print(f"[add card: {card['name']} - {movement_date}]")
-#                     return card
-#         return None
-
-#     # Usando ThreadPoolExecutor para processar os cartões em paralelo
-#     with ThreadPoolExecutor() as executor:
-#         futures = [executor.submit(process_card, card) for card in cards]
-
-#         # Adicionando tqdm para acompanhar o progresso
-#         for future in tqdm(as_completed(futures), total=len(futures), desc='Filtering cards'):
-#             filtered_card = future.result()
-#             if filtered_card:
-#                 filtered_cards.append(filtered_card)
-
-#     return filtered_cards
 
 def get_card_movements(card_id, api_key, token):
     """Obtém o histórico de movimentações de um cartão."""
@@ -154,22 +118,6 @@ def get_card_movements(card_id, api_key, token):
     }
     response = requests.get(url, params=params)
     return response.json() if response.status_code == 200 else []
-
-# def memberInfoByCard(cards, from_date, to_date):
-#     # Coleta informações dos membros para cada card
-#     detailed_info = []
-#     with ThreadPoolExecutor() as executor:
-#         future_to_card = {executor.submit(process_card, card, API_KEY, TOKEN, from_date, to_date): card for card in cards}
-#         for future in tqdm(as_completed(future_to_card), total=len(future_to_card), desc='Processing cards'):
-#             card = future_to_card[future]
-#             try:
-#                 detailed_info.extend(future.result())
-#             except Exception as exc:
-#                 print(f'Error processing card {card}: {exc}')
-
-#     # Convertendo a lista de detalhes de cartões em um DataFrame
-#     df = pd.DataFrame(detailed_info)
-#     return df
 
 def memberInfoByCard(cards, from_date, to_date):
     # Coleta informações dos membros para cada card
