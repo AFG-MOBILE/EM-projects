@@ -32,7 +32,7 @@ def execucao_diaria():
 if __name__ == "__main__":
     metric_log.config_metric_log()
     # execucao_diaria()
-    from_date = '2023-12-01'  # Formato aaaa-mm-dd
+    from_date = '2024-01-01'  # Formato aaaa-mm-dd
     to_date = '2024-01-31'    # Formato aaaa-mm-dd
     filename = 'detailed_interactions_cards_done_list_'
     teams = [

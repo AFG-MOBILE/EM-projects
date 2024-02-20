@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from tqdm import tqdm  # Importar tqdm para acompanhar o progresso
+import threading
 
 # Carrega variáveis de ambiente
 load_dotenv('.env')
@@ -26,6 +27,7 @@ TOKEN = os.getenv('TOKEN_TRELLO')
 
 # Cache para informações de membros
 member_info_cache = {}  
+lock = threading.Lock()
 
 def get_actions_for_card(card_id, api_key, token, from_date, to_date):
     """Busca ações de adição de membros para um card específico."""
@@ -107,6 +109,30 @@ def filter_cards_by_column(cards, column_id, api_key, token, from_date_str, to_d
                         filtered_cards.append(card)
                         break  # Uma vez que encontramos o movimento válido, podemos parar de verificar os outros movimentos
     return filtered_cards
+
+# def filter_cards_by_column(cards, column_id, api_key, token, from_date_str, to_date_str):
+#     # Convertendo as strings de data para objetos datetime
+#     from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
+#     to_date = datetime.strptime(to_date_str, '%Y-%m-%d')
+
+#     filtered_cards = []
+
+#     def process_card_with_lock(card):
+#         card_movements = get_card_movements(card['id'], api_key, token)
+#         if card_movements:
+#             for movement in card_movements:
+#                 if 'data' in movement and 'listAfter' in movement['data'] and movement['data']['listAfter']['id'] == column_id:
+#                     movement_date = datetime.strptime(movement['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
+#                     if from_date <= movement_date <= to_date:
+#                         card['movement_date'] = movement_date
+#                         with lock:
+#                             filtered_cards.append(card)
+#                         break
+
+#     with ThreadPoolExecutor(max_workers=100) as executor:
+#         list(tqdm(executor.map(process_card_with_lock, cards), total=len(cards), desc='Filtering cards'))
+
+#     return filtered_cards
 
 def get_card_movements(card_id, api_key, token):
     """Obtém o histórico de movimentações de um cartão."""
