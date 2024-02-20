@@ -5,9 +5,6 @@ from dotenv import load_dotenv
 import argparse
 
 load_dotenv()
-
-API_KEY = "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"
-
 parser = argparse.ArgumentParser()
 parser.add_argument("--task",default="return a list of numbers")
 parser.add_argument("--language",default="python")
