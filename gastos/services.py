@@ -130,7 +130,16 @@ base_values = {
         "Capa para bloco de notas": np.random.uniform(0, 10), "Envelope para CD": np.random.uniform(0, 10),
         "Adesivo decorativo pequeno": np.random.uniform(0, 10), "Bloco de notas temático": np.random.uniform(0, 10),
         "Caneta ponta fina": np.random.uniform(0, 10), "Clip magnético": np.random.uniform(0, 10),
-        "Marcador de página colorido": np.random.uniform(0, 10), "Envelope decorado": np.random.uniform(0, 10)
+        "Marcador de página colorido": np.random.uniform(0, 10), "Envelope decorado": np.random.uniform(0, 10),
+        "Computador de mesa": np.random.uniform(800, 1200),
+        "Impressora multifuncional": np.random.uniform(500, 800),
+        "Telefone IP": np.random.uniform(500, 700),
+        "Cadeira ergonômica": np.random.uniform(500, 1000),
+        "Projetor": np.random.uniform(700, 1000),
+        "Impressora 3D": np.random.uniform(3000, 5000),
+        "Servidor de rede": np.random.uniform(4000, 7000),
+        "Sistema de videoconferência": np.random.uniform(3000, 6000),
+        "Estação de trabalho de alto desempenho": np.random.uniform(8000, 12000)
     }
 
 def _calTax(items):
