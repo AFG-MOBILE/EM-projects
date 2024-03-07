@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from tqdm import tqdm  # Importar tqdm para acompanhar o progresso
 import threading
+import similarity_yape
 
 # Carrega variáveis de ambiente
 load_dotenv('.env')
@@ -61,6 +62,7 @@ def process_card(card, api_key, token, from_date, to_date):
     card_id = card['id']
     card_name = card['name']
     card_url = card['shortUrl']
+    card_done = card['card_done']
     actions = get_actions_for_card(card_id, api_key, token, from_date, to_date)
     # print(f"Total de actions: {len(actions)}")
     card_member_info = []
@@ -74,7 +76,8 @@ def process_card(card, api_key, token, from_date, to_date):
                 'Card Name': card_name,
                 'Card Url': card_url,  
                 'Member Name': member_info['name'],
-                'Action Date': action_date
+                'Action Date': action_date,
+                'Card Done': card_done
             })
     return card_member_info
 
@@ -103,36 +106,15 @@ def filter_cards_by_column(cards, column_id, api_key, token, from_date_str, to_d
         if card_movements:
             for movement in card_movements:
                 if 'data' in movement and 'listAfter' in movement['data'] and movement['data']['listAfter']['id'] == column_id:
+                    date_datetime = datetime.strptime(movement['date'][:-1], '%Y-%m-%dT%H:%M:%S.%f')
+                    formatted_date = date_datetime.strftime('%m/%Y')
                     movement_date = datetime.strptime(movement['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
                     if from_date <= movement_date <= to_date:
                         card['movement_date'] = movement_date
+                        card['card_done'] = formatted_date
                         filtered_cards.append(card)
                         break  # Uma vez que encontramos o movimento válido, podemos parar de verificar os outros movimentos
     return filtered_cards
-
-# def filter_cards_by_column(cards, column_id, api_key, token, from_date_str, to_date_str):
-#     # Convertendo as strings de data para objetos datetime
-#     from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
-#     to_date = datetime.strptime(to_date_str, '%Y-%m-%d')
-
-#     filtered_cards = []
-
-#     def process_card_with_lock(card):
-#         card_movements = get_card_movements(card['id'], api_key, token)
-#         if card_movements:
-#             for movement in card_movements:
-#                 if 'data' in movement and 'listAfter' in movement['data'] and movement['data']['listAfter']['id'] == column_id:
-#                     movement_date = datetime.strptime(movement['date'], '%Y-%m-%dT%H:%M:%S.%fZ')
-#                     if from_date <= movement_date <= to_date:
-#                         card['movement_date'] = movement_date
-#                         with lock:
-#                             filtered_cards.append(card)
-#                         break
-
-#     with ThreadPoolExecutor(max_workers=100) as executor:
-#         list(tqdm(executor.map(process_card_with_lock, cards), total=len(cards), desc='Filtering cards'))
-
-#     return filtered_cards
 
 def get_card_movements(card_id, api_key, token):
     """Obtém o histórico de movimentações de um cartão."""
@@ -163,10 +145,19 @@ def exportDataToExcel(filename, df, not_found_df, df_all_cards):
     # Exportando para Excel com as abas especificadas
     with pd.ExcelWriter(filename, engine='openpyxl') as writer:
         df.to_excel(writer, sheet_name='General Data', index=False)
-        pivot_members_cards = df.pivot_table(index='Member Name', values='Card ID', aggfunc='count')
+        df_unique_cards_per_member = df.drop_duplicates(subset=['Card ID', 'Member Name'])
+
+        # Garantir que "Card Done" esteja em formato datetime
+        df_unique_cards_per_member['Card Done'] = pd.to_datetime(df_unique_cards_per_member['Card Done'])
+        # Extrair mês e ano para uma nova coluna
+        df_unique_cards_per_member['Month/Year'] = df_unique_cards_per_member['Card Done'].dt.to_period('M')
+        # Criar o pivot table
+        pivot_members_cards = pd.pivot_table(df_unique_cards_per_member, values='Card ID', index=['Month/Year'], columns=['Member Name'], aggfunc='count', fill_value=0)
+
+        # pivot_members_cards = df_unique_cards_per_member.pivot_table(index='Member Name', values='Card ID', aggfunc='count')
         pivot_members_cards.rename(columns={'Card ID': 'Total Cards'}).to_excel(writer, sheet_name='Members x Cards')
-        df['Count'] = 1
-        pivot_cards_members = df.pivot_table(index='Card Name', columns='Member Name', values='Count', aggfunc='count', fill_value=0)
+        df_unique_cards_per_member['Count'] = 1
+        pivot_cards_members = df_unique_cards_per_member.pivot_table(index='Card Name', columns='Member Name', values='Count', aggfunc='count', fill_value=0)
         pivot_cards_members.to_excel(writer, sheet_name='Cards x Members')
         not_found_df.to_excel(writer, sheet_name='Not Members', index=False)
         df_all_cards.to_excel(writer, sheet_name='All Cards in Done', index=False)
@@ -174,7 +165,7 @@ def exportDataToExcel(filename, df, not_found_df, df_all_cards):
     subprocess.run(['open', '-a', 'Microsoft Excel', filename])
 
 
-def generateMetricsTrello(board_id, list_id, filename, from_date, to_date):
+def generateMetricsTrello(board_name, board_id, list_id, filename, from_date, to_date):
     # Obtem todos os membros do board
     all_members = get_all_members(API_KEY, TOKEN, board_id)
     # Convertendo a lista de membros do quadro em um DataFrame
@@ -195,4 +186,13 @@ def generateMetricsTrello(board_id, list_id, filename, from_date, to_date):
     # Coleta informações sobre membros não encontrados nos cards
     not_found_df = members_df[~members_df['fullName'].isin(df['Member Name'])]
 
-    exportDataToExcel(filename,df,not_found_df, df_filtered_cards)
+    # Converter a coluna "Action Date" para datetime
+    df['Action Date'] = pd.to_datetime(df['Action Date'])
+    df_optimize = similarity_yape.unificar_nomes_na_mesma_coluna(df, 'Member Name')
+
+    df_optimize['Board Name'] = board_name
+    # Formatar a coluna "Action Date" para "MM/YYYY"
+    df['Action Date'] = pd.to_datetime(df['Action Date'], format='%d-%m-%Y')
+
+    exportDataToExcel(filename,df_optimize,not_found_df, df_filtered_cards)
+    return df

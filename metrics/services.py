@@ -156,6 +156,7 @@ def appendTribe(owner_tribe, filter, df):
     new_df['staging'] = df_filtrado['staging'].sum()
     new_df['release'] = df_filtrado['release'].sum()
     total = df_filtrado['release'].sum() + df_filtrado['staging'].sum() + df_filtrado['qa'].sum()
+    new_df['total_release_deploy_raw'] = df_filtrado['total_release_deploy_raw'].sum()
     new_df['Total Deploys'] = f"{total} ({df_filtrado['qa'].sum()} - {df_filtrado['staging'].sum()} - {df_filtrado['release'].sum()})"
     new_code = round(df_filtrado['new_code_raw'].sum()/len(filter),2)
     refactor = round(df_filtrado['refactor_raw'].sum()/len(filter),2)

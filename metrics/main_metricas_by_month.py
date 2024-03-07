@@ -3,11 +3,11 @@ import metric_log
 import services
 import subprocess
 
-MONTH = 9
-YEAR = 2023
+MONTH = 2
+YEAR = 2024
 
 def checkDeckMetrics():
-    periodo, metrics, metrics_raw = services.getAllMetrics(MONTH,YEAR)
+    periodo, metrics, metrics_raw = services.getAllMetrics(MONTH,YEAR) # type: ignore
     print(metrics)
     metrics.to_excel('/Users/alexfrisoneyape/Development/EM-projects/metrics/metrics.xlsx')
     metrics_raw.to_excel(f'/Users/alexfrisoneyape/Development/EM-projects/metrics/metrics_raw_{MONTH}_{YEAR}.xlsx')
@@ -17,7 +17,7 @@ def checkDeckMetrics():
 if __name__ == "__main__":
     metric_log.config_metric_log()
     # checkDeckMetrics()
-    df_metrics = services.checkMetricsByMonth([1,2], [2024, 2024]) 
+    df_metrics = services.checkMetricsByMonth([ 1,2], [ 2024, 2024]) 
     services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Febrero')
     
 #     minutes = [45,
