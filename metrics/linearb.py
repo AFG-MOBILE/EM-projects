@@ -53,9 +53,11 @@ def get_repositories_into_services():
 
     # Faça a solicitação GET
     response = requests.get(url, headers=headers)
+    print("Dados de Service")
     # Verifique a resposta
     if response.status_code == 200:
         data = response.json()
+        print(data)
         items = data['items']
         for item in items:
             paths = item['paths']

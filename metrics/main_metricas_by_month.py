@@ -17,7 +17,7 @@ def checkDeckMetrics():
 if __name__ == "__main__":
     metric_log.config_metric_log()
     # checkDeckMetrics()
-    df_metrics = services.checkMetricsByMonth([ 1,2], [ 2024, 2024]) 
+    df_metrics = services.checkMetricsByMonth([ 2,3], [ 2024, 2024]) 
     services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Febrero')
     
 #     minutes = [45,

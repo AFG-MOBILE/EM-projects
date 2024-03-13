@@ -268,6 +268,8 @@ def checkNewServicesWithoutOwners():
         print("***********************************************************************")
         print(f'Não foram encontrados repositorios no github que ainda nao foram alocados no linearB')
         print("***********************************************************************")
+    
+    # Verifica se falta add um repositorio que possua um owner mas ainda nao está em algum serviço do linearb
 
 def getCycleTime(month, year):
     services = linearb.get_services()
