@@ -9,6 +9,8 @@ from github import Github
 import os
 from base64 import b64decode
 import re
+import difflib
+
 
 API_KEY = "522a4cd86f769c2cd1c8b97c151e0210"
 
@@ -96,7 +98,7 @@ def fetch_linearb_data():
         {"after": "2023-12-01", "before": "2023-12-31"},
         {"after": "2024-01-01", "before": "2024-01-31"},
         {"after": "2024-02-01", "before": "2024-02-29"},
-        {"after": "2024-03-01", "before": "2024-03-11"}
+        {"after": "2024-03-01", "before": "2024-03-31"}
       ]
     }
     
@@ -211,9 +213,43 @@ def getMetricsContributorsByLinearB(fetch_linearb_data, parse_and_format_respons
     return df_contributor
 
 # Função para encontrar o melhor match com base na similaridade
-def match_names(name, list_names):
-    highest = process.extractOne(name, list_names)
-    return highest[0] if highest else None
+def match_names(nome, lista_nomes):
+    matches = []
+    
+    # Itera sobre todos os nomes na lista
+    for candidate_name in lista_nomes:
+        # Calcula a similaridade entre os nomes
+        similarity_ratio = difflib.SequenceMatcher(None, nome, candidate_name).ratio()
+        
+        # Verifica se a similaridade é maior ou igual a 0.6 e se existem pelo menos 2 palavras muito semelhantes
+        if similarity_ratio >= 0.6 and sum(1 for word in nome.split() if word in candidate_name.split()) >= 2:
+            matches.append((candidate_name, similarity_ratio))
+    
+    # Retorna o nome com o maior nível de semelhança
+    if matches:
+        return max(matches, key=lambda x: x[1])
+    else:
+        return None, None
+
+def find_similar_names(contributors_metrics, contributors_roles):
+    similar_names = []
+    similarity_levels = []
+
+    for index, row in contributors_metrics.iterrows():
+        nome = row['Contributor Name']
+        lista_nomes = contributors_roles['Contributor Name'].tolist()
+
+        melhor_nome, nivel_similaridade = match_names(nome, lista_nomes)
+        if melhor_nome is not None:
+            print(f"O nome mais semelhante a '{nome}' é '{melhor_nome}' com nível de similaridade de {nivel_similaridade:.2f}.")
+            similar_names.append(melhor_nome)
+            similarity_levels.append(nivel_similaridade)
+        else:
+            print(f"Nenhum nome semelhante encontrado para '{nome}'. Removendo a linha do DataFrame.")
+            contributors_metrics.drop(index, inplace=True)
+        
+    contributors_metrics['Best Match Name'] = similar_names
+    contributors_metrics['Similarity Level'] = similarity_levels
 
 contributors_metrics = getMetricsContributorsByLinearB(fetch_linearb_data, parse_and_format_response, get_contributor_names, format_with_name_contributor)
 data = extrair_dados_usuarios()
@@ -223,30 +259,10 @@ contributors_roles = pd.DataFrame(data)
 unique_names_metrics = contributors_metrics['Contributor Name'].unique()
 unique_names_roles = contributors_roles['Contributor Name'].unique()
 
-# Criando um dicionário de correspondências
-matches = {name: match_names(name, unique_names_roles) for name in unique_names_metrics}
+find_similar_names(contributors_metrics,contributors_roles)
 
-# Mapeando os nomes no DataFrame contributors_metrics para os correspondentes mais similares
-contributors_metrics['Matched Name'] = contributors_metrics['Contributor Name'].map(matches)
-
-# Unindo as informações dos dois DataFrames
-result_df = pd.merge(contributors_metrics, contributors_roles, left_on='Matched Name', right_on='Contributor Name', how='left')
-result_df = result_df[['Contributor Id', 'Matched Name', 'Date','Cycle time','Cycle time (Formatted)','Total Changes', 'New Work','New Work (%)', 'Refactor', 'Refactor (%)','Rework', 'Rework (%)', 'PR Reviews', 'PR New', 'PR Merged', 'Branches Done', 'Activity Days','Username', 'Email', 'Role', 'Squad', 'Division']]
-# Renomeando a coluna 'Nome' para 'Primeiro Nome'
-result_df = result_df.rename(columns={'Matched Name': 'Contributor Name'})
-result_df.to_excel("/Users/alexfrisoneyape/Development/EM-projects/output/contributors_metrics_roles.xlsx")
-subprocess.run(['open', '-a', 'Microsoft Excel', "/Users/alexfrisoneyape/Development/EM-projects/output/contributors_metrics_roles.xlsx"])
-# filename = "/Users/alexfrisoneyape/Development/EM-projects/output/contributors_roles.xlsx"
-# contributors_roles.to_excel(filename)
-# subprocess.run(['open', '-a', 'Microsoft Excel', filename])
-
-# # Aplicando a função para unificar nomes no DataFrame contributors_metrics
-# unique_names = contributors_roles['Contributor Name'].unique()
-# contributors_metrics['Unified Contributor Name'] = contributors_metrics['Contributor Name'].apply(find_best_match, choices=unique_names)
-
-# # Unindo os DataFrames
-# merged_df = pd.merge(contributors_metrics, contributors_roles, left_on='Unified Contributor Name', right_on='Contributor Name', how='left')
-# merged_df.to_excel("/Users/alexfrisoneyape/Development/EM-projects/output/contributors_metrics_roles.xlsx")
-# subprocess.run(['open', '-a', 'Microsoft Excel', "/Users/alexfrisoneyape/Development/EM-projects/output/contributors_metrics_roles.xlsx"])
-
-
+output = "/Users/alexfrisoneyape/Development/EM-projects/output/contributors_metrics_roles.xlsx"
+contributors_metrics.to_excel(output)
+with pd.ExcelWriter(output, engine='openpyxl', mode='a') as writer:
+    contributors_roles.to_excel(writer, sheet_name="Contributors Roles", index=False)
+subprocess.run(['open', '-a', 'Microsoft Excel', output])

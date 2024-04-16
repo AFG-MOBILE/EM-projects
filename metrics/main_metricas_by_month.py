@@ -3,7 +3,7 @@ import metric_log
 import services
 import subprocess
 
-MONTH = 2
+MONTH = 3
 YEAR = 2024
 
 def checkDeckMetrics():
@@ -17,8 +17,8 @@ def checkDeckMetrics():
 if __name__ == "__main__":
     metric_log.config_metric_log()
     # checkDeckMetrics()
-    df_metrics = services.checkMetricsByMonth([ 2,3], [ 2024, 2024]) 
-    services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Febrero')
+    df_metrics = services.checkMetricsByMonth([2,3], [ 2024, 2024]) 
+    services.createSlideForShowcase('/Users/alexfrisoneyape/Development/EM-projects/metrics/metricas.xlsx','Marzo')
     
 #     minutes = [45,
 # 1253,
