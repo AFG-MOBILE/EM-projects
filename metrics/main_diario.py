@@ -57,8 +57,8 @@ def get_squads_and_repos(repo_name, path):
     contents = repo.get_contents(path)
 
     data = []
-
-    for content_file in contents:
+    print(contents)
+    for content_file in contents: # type: ignore
         if content_file.name.endswith('.tfvars'):
             squad_name = content_file.name.rsplit('.', 1)[0]
             file_content = repo.get_contents(content_file.path)
@@ -80,9 +80,9 @@ path = 'terraform/tfvars/squads'
 squad_repos = get_squad_repos(repo_name, path)
 data = []
 for squad, repos in squad_repos.items():
-    # print(f"Squad: {squad}")
+    print(f"Squad: {squad}")
     for repo_name, repo_info in repos.items():
-        # print(f"  - {repo_name}: {repo_info['description']}")
+        print(f"  - {repo_name}: {repo_info['description']}")
         data.append({
                     'Squad Name': squad,
                     'Repository Name': repo_name,
