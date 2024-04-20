@@ -17,7 +17,6 @@ ACCESS_TOKEN = os.getenv('ACCESS_TOKEN')
 API_KEY = "522a4cd86f769c2cd1c8b97c151e0210"
 GITHUB_TOKEN = ACCESS_TOKEN
 ORGANIZATION = 'yaperos'  # Substitua 'organization_name' pela sua organização
-TEAM_ID = '6709071'  # Substitua 'team_id' pelo ID da sua equipe
 START_DATE,END_DATE = '2024-03-01', '2024-03-31'
 FILENAME = "/Users/alexfrisoneyape/Development/EM-projects/output/metrics_personas.xlsx"
 
@@ -245,13 +244,20 @@ def get_teams():
     for team in teams:
         print(f"Team Name: {team['name']}, Team ID: {team['id']}")
 
-def get_team_members(organization, team_id):
-    # team_members_url = f'https://api.github.com/orgs/{organization}/teams/{team_id}/members'
+def get_team_members(organization):
     team_members_url = f'https://api.github.com/orgs/{organization}/teams/marketplace/members'
     response = requests.get(team_members_url, headers=headers)
     members = response.json()
-    # print(members)
-    return [member['login'] for member in members]
+    members_login = [member['login'] for member in members]
+    print(f"marketplace: {members}")
+    team_members_url = f'https://api.github.com/orgs/{organization}/teams/insurance/members'
+    response = requests.get(team_members_url, headers=headers)
+    members = response.json()
+    for member in members:
+        members_login.append(member['login'])
+
+    print(f"marketplace & insurance: {members}")
+    return members_login
 
 def get_user_reviews(username,start_date,end_date):
     query = f'is:pr reviewed-by:{username} created:{start_date}..{end_date}'
@@ -281,9 +287,6 @@ def get_user_reviews(username,start_date,end_date):
         else:
             pr_closed_at = ""  
         
-        # pr_creation_date = pr_details['created_at']  # Data de criação do PR
-        # pr_merged_at = pr_details['merged_at']
-        # pr_closed_at = pr_details['closed_at']
         author = pr_details['user']['login']
         
         if repo_name not in activities:
@@ -294,7 +297,8 @@ def get_user_reviews(username,start_date,end_date):
             'PR Title': pr['title'],
             'Creation Date':pr_creation_date,
             'Merged Date': pr_merged_at,
-            'Close Date': pr_closed_at
+            'Close Date': pr_closed_at,
+            'URL':pr['pull_request']['url']
         })
     
     return activities
@@ -328,16 +332,13 @@ def list_contributor_activities(username, start_date, end_date):
             pr_closed_at = data_objeto.strftime("%Y-%m-%d")
         else:
             pr_closed_at = ""  
-        # pr_creation_date = pr_details['created_at']  # Data de criação do PR
-        # pr_merged_at = pr_details['merged_at']
-        # pr_closed_at = pr_details['closed_at']
         
         if repo_name not in activities:
             activities[repo_name] = []
         activities[repo_name].append({
             'Repo':repo_name,
+            'Author':pr_details['user']['login'],
             'PR Title': pr['title'],
-            'PR Size': pr_size,
             'Additions': pr_additions,
             'Deletions': pr_deletions,
             'Creation Date':pr_creation_date,
@@ -349,8 +350,10 @@ def list_contributor_activities(username, start_date, end_date):
     return activities
 
 # get_teams()
-def get_personas_metrics(ORGANIZATION, TEAM_ID, START_DATE, END_DATE, FILENAME, find_similar_names, extrair_dados_usuarios, format_with_name_contributor, get_contributor_names, parse_and_format_response, fetch_linearb_data, getMetricsContributorsByLinearB, getInfoUser, get_team_members, get_user_reviews, list_contributor_activities):
-    team_members = get_team_members(ORGANIZATION, TEAM_ID)
+# exit()
+def get_personas_metrics(ORGANIZATION, START_DATE, END_DATE, FILENAME, find_similar_names, extrair_dados_usuarios, format_with_name_contributor, get_contributor_names, parse_and_format_response, fetch_linearb_data, getMetricsContributorsByLinearB, getInfoUser, get_team_members, get_user_reviews, list_contributor_activities):
+    team_members = get_team_members(ORGANIZATION)
+    
     data_metrics_linearb = getMetricsContributorsByLinearB(fetch_linearb_data, parse_and_format_response, get_contributor_names, format_with_name_contributor)
     data_roles = extrair_dados_usuarios()
 
@@ -375,25 +378,31 @@ def get_personas_metrics(ORGANIZATION, TEAM_ID, START_DATE, END_DATE, FILENAME, 
                             "Fullname":fullname,
                             "Repo": repo,
                             "PR Title":pr['PR Title'],
-                            "PR Size":pr['PR Size'],
                             "Additions":pr['Additions'],
                             "Deletions":pr['Deletions'],
                             "Merged Date":pr['Merged Date'],
-                            "Close Date":pr['Close Date'],
-                            "URL":pr['URL']
+                            "URL":pr['URL'],
+                            "Type": "PR Created",
+                            "Author Pull request":pr['Author']
             })
         print(f"Reviews by {member}:")
         reviews = get_user_reviews(member, START_DATE,END_DATE)
         for repo, prs in reviews.items():
             print(f'Repository: {repo}')
             for pr in prs:
-                data_reviews.append({
+                data.append({
                             "Creation Date":pr['Creation Date'],
                             "Username":member,
                             "Fullname":fullname,
                             "Repo": pr['Repo'],
+                            "PR Title":pr['PR Title'],
+                            "Additions":"",
+                            "Deletions":"",
+                            "Merged Date":"",
+                            "URL":pr['URL'],
+                            "Type": "PR Reviewed",
                             "Author Pull request":pr['Author'],
-                            "PR Title":pr['PR Title']
+
             })
         print("\n")  # Adiciona uma linha vazia entre cada membro para melhor leitura
 
@@ -413,13 +422,14 @@ def get_personas_metrics(ORGANIZATION, TEAM_ID, START_DATE, END_DATE, FILENAME, 
     find_similar_names(metrics_members_personas,metrics_contributors_roles)
     find_similar_names(metrics_linearb_personas,metrics_contributors_roles)
 
+    metrics_merged_contributors_roles = pd.merge(metrics_members_personas, metrics_contributors_roles, left_on='Best Match Name', right_on='Contributor Name', how='left')
 
     metrics_personas.to_excel(FILENAME, sheet_name="Contributors PR's", index=False)
     with pd.ExcelWriter(FILENAME, engine='openpyxl', mode='a') as writer:
         metrics_linearb_personas.to_excel(writer, sheet_name="Contributors LinearB", index=False)
-        metrics_reviews_personas.to_excel(writer, sheet_name="Contributors Reviews", index=False)
-        metrics_members_personas.to_excel(writer, sheet_name="Contributors", index=False)
-        metrics_contributors_roles.to_excel(writer, sheet_name="Contributors Roles", index=False)
+        # metrics_reviews_personas.to_excel(writer, sheet_name="Contributors Reviews", index=False)
+        metrics_merged_contributors_roles.to_excel(writer, sheet_name="Contributors", index=False)
+        # metrics_contributors_roles.to_excel(writer, sheet_name="Contributors Roles", index=False)
     subprocess.run(['open', '-a', 'Microsoft Excel', FILENAME])
 
-get_personas_metrics(ORGANIZATION, TEAM_ID, START_DATE, END_DATE, FILENAME, find_similar_names, extrair_dados_usuarios, format_with_name_contributor, get_contributor_names, parse_and_format_response, fetch_linearb_data, getMetricsContributorsByLinearB, getInfoUser, get_team_members, get_user_reviews, list_contributor_activities)
+get_personas_metrics(ORGANIZATION, START_DATE, END_DATE, FILENAME, find_similar_names, extrair_dados_usuarios, format_with_name_contributor, get_contributor_names, parse_and_format_response, fetch_linearb_data, getMetricsContributorsByLinearB, getInfoUser, get_team_members, get_user_reviews, list_contributor_activities)
